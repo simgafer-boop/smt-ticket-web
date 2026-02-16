@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket SMT</title>
+<style>
+  :root{
+    --brand:#1f5ca8; /* azul */
+    --brand-2:#f59e0b; /* naranja */
+    --ink:#111827; /* gris casi negro */
+  }
+  html,body{margin:0;padding:0;background:#f3f4f6;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Inter,Arial,sans-serif;}
+  header{padding:16px 20px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);position:sticky;top:0;}
+  .wrap{max-width:860px;margin:0 auto;padding:16px;}
+  h1{font-size:20px;margin:0;}
+  .card{background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.06);padding:16px;margin:16px 0;}
+  .prices{display:flex;gap:12px;flex-wrap:wrap}
+  .price-btn{flex:1 1 160px;border:2px solid var(--brand);color:var(--brand);background:#fff;padding:14px 16px;font-weight:700;border-radius:10px;cursor:pointer;transition:.2s;}
+  .price-btn:hover{background:rgba(31,92,168,.06)}
+  .price-btn.active{background:var(--brand);color:#fff}
+  .actions{margin-top:12px;display:flex;gap:12px;flex-wrap:wrap}
+  .primary{background:var(--brand);color:#fff;border:none;padding:12px 16px;border-radius:10px;font-weight:700;cursor:pointer}
+  .ghost{background:transparent;color:var(--brand);border:1px solid var(--brand);padding:12px 16px;border-radius:10px;font-weight:700;cursor:pointer}
+
+  /* Ticket preview */
+  .ticket{width:340px;min-height:520px;margin:auto;background:#fff;border:1px dashed #cbd5e1;border-radius:14px;position:relative;overflow:hidden}
+  .ticket .top{padding:16px 16px 6px;text-align:center;border-bottom:2px solid #e5e7eb}
+  .ticket .top img{height:68px;object-fit:contain}
+  .ticket .body{padding:14px 18px}
+  .ticket h2{margin:6px 0 0;font-size:18px;color:var(--ink)}
+  .ticket .row{display:flex;justify-content:space-between;margin:8px 0}
+  .muted{color:#6b7280;font-size:12px}
+  .price{font-size:40px;color:var(--brand);font-weight:800;margin:8px 0}
+  .big{font-size:22px;font-weight:700}
+  .bottom{position:absolute;left:0;right:0;bottom:0;padding:10px 16px;border-top:2px solid #e5e7eb;text-align:center}
+  .bon{font-size:18px;font-weight:700;color:var(--brand-2)}
+
+  /* Print styles */
+  @media print{
+    @page{size:80mm 140mm;margin:6mm}
+    body{background:#fff}
+    header,.card:not(.ticket-card){display:none !important}
+    .ticket{width:auto;min-height:auto;border:none;box-shadow:none}
+    .ticket .top img{height:56px}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Ticket SMT — descarga tu billete</h1>
+  </header>
+  <div class="wrap">
+    <div class="card ticket-card">
+      <div class="ticket" id="ticket">
+        <div class="top">
+          <img src="logo_smt.png" alt="SMT logo"/>
+        </div>
+        <div class="body">
+          <div class="muted">Ticket de transporte</div>
+          <h2>SMT — BILLETE CLIENTE</h2>
+          <div class="row"><span class="muted">Fecha</span><strong id="t-date">—</strong></div>
+          <div class="row"><span class="muted">Hora</span><strong id="t-time">—</strong></div>
+          <div class="row"><span class="muted">Zona</span><strong>LES ABYMES</strong></div>
+          <div class="muted" style="margin-top:8px">Precio</div>
+          <div class="price" id="t-price">—</div>
+          <div class="row"><span class="muted">Ref.</span><span class="big" id="t-ref">—</span></div>
+        </div>
+        <div class="bottom">
+          <div class="bon">bon voyage</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="muted" style="margin-bottom:8px">Elige el precio del billete:</div>
+        <div class="prices">
+          <button class="price-btn" data-val="1,20€">1,20€</button>
+          <button class="price-btn" data-val="1,80€">1,80€</button>
+        </div>
+        <div class="actions">
+          <button class="primary" id="btn-make">Generar billete</button>
+          <button class="ghost" id="btn-print" disabled>Descargar / Imprimir</button>
+        </div>
+        <div class="muted">Consejo: tras pulsar "Descargar / Imprimir", elige <em>Guardar como PDF</em> en tu móvil.</div>
+      </div>
+    </div>
+  </div>
+<script>
+  const qs = new URLSearchParams(location.search);
+  const pre = qs.get('p'); // "1.20" o "1.80"
+  const priceBtns = [...document.querySelectorAll('.price-btn')];
+  let selectedPrice = null;
+
+  function setPrice(val){
+    selectedPrice = val;
+    priceBtns.forEach(b=>{
+      b.classList.toggle('active', b.dataset.val === val)
+    });
+    document.getElementById('t-price').textContent = val || '—';
+  }
+
+  priceBtns.forEach(btn=>btn.addEventListener('click', ()=>setPrice(btn.dataset.val)));
+
+  // Preselección si viene por query string
+  if(pre === '1.20'){ setPrice('1,20€'); }
+  if(pre === '1.80'){ setPrice('1,80€'); }
+
+  function formatDateTime(){
+    try{
+      const tz = 'America/Guadeloupe';
+      const now = new Date();
+      const fDate = new Intl.DateTimeFormat('fr-FR',{ timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'}).format(now);
+      const fTime = new Intl.DateTimeFormat('fr-FR',{ timeZone: tz, hour:'2-digit', minute:'2-digit'}).format(now);
+      return {fDate, fTime, epoch: now.getTime()};
+    }catch(e){
+      const now = new Date();
+      const pad = n=> (''+n).padStart(2,'0');
+      return {fDate: `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`, fTime:`${pad(now.getHours())}:${pad(now.getMinutes())}`, epoch: now.getTime()};
+    }
+  }
+
+  function makeRef(epoch){
+    const rnd = Math.floor(Math.random()*9999).toString().padStart(4,'0');
+    return `SMT-${epoch}-${rnd}`;
+  }
+
+  document.getElementById('btn-make').addEventListener('click', ()=>{
+    if(!selectedPrice){
+      alert('Selecciona un precio (1,20€ o 1,80€).');
+      return;
+    }
+    const {fDate, fTime, epoch} = formatDateTime();
+    document.getElementById('t-date').textContent = fDate;
+    document.getElementById('t-time').textContent = fTime;
+    document.getElementById('t-ref').textContent = makeRef(epoch);
+    document.getElementById('btn-print').disabled = false;
+  });
+
+  document.getElementById('btn-print').addEventListener('click', ()=>{
+    window.print();
+  });
+</script>
+</body>
+</html>
