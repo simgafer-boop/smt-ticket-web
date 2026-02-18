@@ -162,4 +162,92 @@ header{
 <div class="wrap">
 
   <div class="ticket" id="ticket">
-    <
+    <div class="top">
+      <img src="logo_smt.png" alt="Logo SMT"/>
+    </div>
+
+    <div class="body">
+      <div class="muted">Ticket de transport</div>
+      <h2>SMT – Billet client</h2>
+
+      <div class="row"><span class="muted">Date</span><strong id="t-date">—</strong></div>
+      <div class="row"><span class="muted">Heure</span><strong id="t-time">—</strong></div>
+
+      <div class="muted" style="margin-top:10px">Prix</div>
+      <div class="price" id="t-price">—</div>
+    </div>
+
+    <div class="bottom">
+      <div class="bon">bon voyage</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="muted" style="margin-bottom:8px">Choisissez le prix du billet :</div>
+
+    <div class="prices">
+      <button class="price-btn" data-val="1,20€">1,20€</button>
+      <button class="price-btn" data-val="1,80€">1,80€</button>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="btn-make">Générer le billet</button>
+      <button class="ghost" id="btn-download" disabled>Télécharger le ticket</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+const priceBtns=[...document.querySelectorAll('.price-btn')];
+let selectedPrice=null;
+
+function setPrice(v){
+  selectedPrice=v;
+  priceBtns.forEach(b=>b.classList.toggle('active',b.dataset.val===v));
+  document.getElementById('t-price').textContent=v||'—';
+}
+
+priceBtns.forEach(b=>b.addEventListener('click',()=>setPrice(b.dataset.val)));
+
+function formatDateTime(){
+  const tz='America/Guadeloupe';
+  const now=new Date();
+  const fDate=new Intl.DateTimeFormat('fr-FR',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
+  const fTime=new Intl.DateTimeFormat('fr-FR',{timeZone:tz,hour:'2-digit',minute:'2-digit'}).format(now);
+  return {fDate,fTime};
+}
+
+document.getElementById('btn-make').addEventListener('click',()=>{
+  if(!selectedPrice){alert('Sélectionnez un prix.');return;}
+  const {fDate,fTime}=formatDateTime();
+  document.getElementById('t-date').textContent=fDate;
+  document.getElementById('t-time').textContent=fTime;
+  document.getElementById('btn-download').disabled=false;
+});
+
+document.getElementById('btn-download').addEventListener('click', async () => {
+
+  const ticket = document.getElementById("ticket");
+
+  const canvas = await html2canvas(ticket, { scale: 2 });
+
+  const imgData = canvas.toDataURL("image/png");
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "px",
+    format: [canvas.width, canvas.height]
+  });
+
+  doc.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+  doc.save("ticket-client.pdf");
+
+});
+
+</script>
+
+</body>
+</html>
